@@ -7,7 +7,7 @@
 const SUPABASE_URL = "https://cbwrniumjrbzdvwomlnq.supabase.co";
 
 // Replace this placeholder with your sb_publishable_ key.
-const SUPABASE_PUBLISHABLE_KEY = sb_publishable_ZlSgJ03SUD1-MQc7M8qU3g_dOiNUnHG;
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_ZlSgJ03SUD1-MQc7M8qU3g_dOiNUnHG";
 
 // 2. CONNECT TO SUPABASE
 const supabaseClient = window.supabase.createClient(
