@@ -137,6 +137,143 @@ document.addEventListener("DOMContentLoaded", async () => {
             passwordInput.value = "";
         }
     });
+    
+    // ==========================================
+    // AI HUB — PRIVATE MP4 UPLOAD
+    // ==========================================
+
+    const videoForm = document.getElementById("video-form");
+    const videoInput = document.getElementById("reference-video");
+    const videoInstructions = document.getElementById("video-instructions");
+    const uploadButton = document.getElementById("upload-button");
+    const uploadMessage = document.getElementById("upload-message");
+
+    if (videoForm) {
+        videoForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const file = videoInput.files[0];
+
+            if (!file) {
+                uploadMessage.textContent = "Please select an MP4 video.";
+                return;
+            }
+
+            // Maximum upload size: 100 MB
+            if (file.size > 100 * 1024 * 1024) {
+                uploadMessage.textContent = "Video must be smaller than 100 MB.";
+                return;
+            }
+
+            if (
+                file.type !== "video/mp4" &&
+                !file.name.toLowerCase().endsWith(".mp4")
+            ) {
+                uploadMessage.textContent = "Please select an MP4 file.";
+                return;
+            }
+
+            const { data: sessionData, error: sessionError } =
+                await supabaseClient.auth.getSession();
+
+            if (sessionError || !sessionData.session) {
+                uploadMessage.textContent = "Please sign in first.";
+                return;
+            }
+
+            const user = sessionData.session.user;
+
+            const destinations = Array.from(
+                videoForm.querySelectorAll(
+                    'input[name="destination"]:checked'
+                )
+            ).map(input => input.value);
+
+            if (destinations.length === 0) {
+                uploadMessage.textContent =
+                    "Select at least one publishing destination.";
+                return;
+            }
+
+            const instructions = videoInstructions.value.trim();
+
+            if (!instructions) {
+                uploadMessage.textContent =
+                    "Please enter your video instructions.";
+                return;
+            }
+
+            const safeFilename = file.name.replace(
+                /[^a-zA-Z0-9._-]/g,
+                "_"
+            );
+
+            const storagePath =
+                `${user.id}/${crypto.randomUUID()}-${safeFilename}`;
+
+            uploadButton.disabled = true;
+            uploadMessage.textContent = "Uploading your reference video...";
+
+            try {
+                // Upload to the private Supabase bucket.
+                const { error: uploadError } =
+                    await supabaseClient.storage
+                        .from("reference-videos")
+                        .upload(storagePath, file, {
+                            contentType: "video/mp4",
+                            upsert: false
+                        });
+
+                if (uploadError) {
+                    throw uploadError;
+                }
+
+                uploadMessage.textContent =
+                    "Video uploaded! Creating your automation job...";
+
+                // Create the corresponding database record.
+                const { data: job, error: jobError } =
+                    await supabaseClient
+                        .from("automation_jobs")
+                        .insert({
+                            user_id: user.id,
+                            title: file.name,
+                            instructions: instructions,
+                            reference_video_path: storagePath,
+                            destinations: destinations,
+                            status: "draft",
+                            resume_after_hours: 5,
+                            approval_required: true
+                        })
+                        .select("id")
+                        .single();
+
+                if (jobError) {
+                    // Remove uploaded file if job creation fails.
+                    await supabaseClient.storage
+                        .from("reference-videos")
+                        .remove([storagePath]);
+
+                    throw jobError;
+                }
+
+                uploadMessage.textContent =
+                    "SUCCESS! Your video and automation job are saved. Job ID: " +
+                    job.id;
+
+                videoForm.reset();
+
+            } catch (error) {
+                console.error("AI HUB upload error:", error);
+
+                uploadMessage.textContent =
+                    "Upload failed: " + error.message;
+            } finally {
+                uploadButton.disabled = false;
+            }
+        });
+    }
+
 
     // CREATE ACCOUNT
     signupButton.addEventListener("click", async () => {
