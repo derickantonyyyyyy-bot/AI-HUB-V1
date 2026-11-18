@@ -22,6 +22,45 @@
             <p>All your favourite AI platforms in one place.</p>
         </section>
 
+        <section class="auth-panel">
+            <h2>AI HUB Account</h2>
+            <p>Sign in to access your personal workspace.</p>
+
+            <form id="auth-form">
+                <input
+                    type="email"
+                    id="auth-email"
+                    placeholder="Your email address"
+                    autocomplete="email"
+                    required
+                >
+
+                <input
+                    type="password"
+                    id="auth-password"
+                    placeholder="Password"
+                    autocomplete="current-password"
+                    required
+                >
+
+                <button type="submit" id="login-button">
+                    Sign In
+                </button>
+
+                <button type="button" id="signup-button">
+                    Create Account
+                </button>
+            </form>
+
+            <button type="button" id="logout-button" hidden>
+                Sign Out
+            </button>
+
+            <p id="auth-message" aria-live="polite">
+                Not signed in.
+            </p>
+        </section>
+
         <section class="workspace">
             <div>
                 <h3>My Workspace</h3>
